@@ -2,5 +2,4 @@
 # See: https://goreleaser.com/customization/
 version: 2
 archives:
-  # Outputs raw binaries as the release artifacts.
-  format: binary
+  - format: binary
