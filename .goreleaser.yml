@@ -1,4 +1,6 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # See: https://goreleaser.com/customization/
+version: 2
 archives:
   # Outputs raw binaries as the release artifacts.
   format: binary
