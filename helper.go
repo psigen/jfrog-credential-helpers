@@ -2,9 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/docker/docker-credential-helpers/credentials"
@@ -17,18 +16,25 @@ type ArtifactoryKeychain struct{}
 
 var ErrInvalidDomain = errors.New("invalid domain: must contain *.jfrog.io")
 
-func getServerIdFromUrl(serverUrl string) (string, error) {
-	fmt.Fprintln(os.Stderr, "serverUrl", serverUrl)
-
-	var serverHostname string
+// Returns the hostname of either a URL or a hostname string.
+func getHostnameFromURLorHost(serverUrl string) (string, error) {
 	if strings.HasPrefix(serverUrl, "https://") || strings.HasPrefix(serverUrl, "http://") {
 		u, err := url.Parse(serverUrl)
 		if err != nil {
 			return "", err
 		}
-		serverHostname = u.Hostname()
+		return u.Hostname(), nil
 	} else {
-		serverHostname = serverUrl
+		return serverUrl, nil
+	}
+
+}
+
+// Gets the default server ID used by JFrog for an artifactory URL.
+func getServerIdFromUrl(serverURL string) (string, error) {
+	serverHostname, err := getHostnameFromURLorHost(serverURL)
+	if err != nil {
+		return "", err
 	}
 
 	serverId, domain, found := strings.Cut(serverHostname, ".")
@@ -41,9 +47,7 @@ func getServerIdFromUrl(serverUrl string) (string, error) {
 
 // Logs into artifactory using an interactive webauth flow.
 func (h ArtifactoryKeychain) Login(serverURL string) error {
-	fmt.Fprintln(os.Stderr, "Login", serverURL)
-
-	// TODO(PV): Logout before logging in.
+	// TODO(PV): Logout before logging in?
 
 	serverDetails := config.ServerDetails{Url: serverURL}
 	serverId, err := getServerIdFromUrl(serverURL)
@@ -63,11 +67,9 @@ func (h ArtifactoryKeychain) Login(serverURL string) error {
 
 // Logs out of artifactory by clearing the creds used by `jf` CLI tool.
 func (h ArtifactoryKeychain) Logout(serverURL string) error {
-	fmt.Fprintln(os.Stderr, "Logout", serverURL)
-
 	serverId, err := getServerIdFromUrl(serverURL)
 	if errors.Is(err, ErrInvalidDomain) {
-		fmt.Println("Skipping logout from invalid domain:", serverURL)
+		log.Println("Skipping logout from invalid domain:", serverURL)
 		return nil
 	} else if err != nil {
 		return err
@@ -83,54 +85,65 @@ func (h ArtifactoryKeychain) Logout(serverURL string) error {
 
 // (UNSUPPORTED) Add adds new credentials to the keychain.
 func (h ArtifactoryKeychain) Add(creds *credentials.Credentials) error {
-	fmt.Fprintln(os.Stderr, "Add", creds)
-	return errors.New("adding credentials not supported: use `jf login` CLI")
+	log.Fatalln("adding credentials is not supported: use `jf login` CLI")
+	return errors.ErrUnsupported
 }
 
 // (UNSUPPORTED) Delete removes credentials from the keychain.
 func (h ArtifactoryKeychain) Delete(serverURL string) error {
-	fmt.Fprintln(os.Stderr, "Delete", serverURL)
-	return errors.New("deleting credentials not supported: use `jf logout` CLI")
+	log.Fatalln("deleting credentials is not supported: use `jf` CLI")
+	return errors.ErrUnsupported
 }
 
 // Get returns the username and secret to use for a given registry server URL.
 func (h ArtifactoryKeychain) Get(serverURL string) (string, string, error) {
-	fmt.Fprintln(os.Stderr, "Get", serverURL)
-
-	serverId, err := getServerIdFromUrl(serverURL)
+	serverHostname, err := getHostnameFromURLorHost(serverURL)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Err", err)
+		log.Fatalln("unable to find hostname in", serverURL)
+	}
+
+	serverDetailList, err := config.GetAllServersConfigs()
+	if err != nil {
+		log.Fatalln("unable to retrieve JFrog server configs:", err)
 		return "", "", err
 	}
 
-	serverDetails, err := config.GetSpecificConfig(serverId, false, false)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Err", err)
-		return "", "", err
+	for _, serverDetails := range serverDetailList {
+		u, err := url.Parse(serverDetails.Url)
+		if err != nil {
+			log.Println("Skipping", serverDetails.Url, ": unable to parse as URL")
+			continue
+		}
+
+		if u.Hostname() == serverHostname {
+			user := serverDetails.User
+			pass := serverDetails.AccessToken
+			return user, pass, nil
+		}
 	}
 
-	user := serverDetails.User
-	pass := serverDetails.AccessToken
-	fmt.Fprintln(os.Stderr, "Succ", user, pass)
-	return user, pass, nil
+	log.Fatalln("not logged into", serverURL, "from JFrog CLI")
+	return "", "", errors.ErrUnsupported
 }
 
 // List returns the stored URLs and corresponding usernames.
 func (h ArtifactoryKeychain) List() (map[string]string, error) {
-	fmt.Fprintln(os.Stderr, "List")
-
 	resp := make(map[string]string)
 
 	serverDetailList, err := config.GetAllServersConfigs()
 	if err != nil {
+		log.Println("unable to retrieve JFrog server configs:", err)
 		return nil, err
 	}
 
 	for _, serverDetails := range serverDetailList {
-		serverHostname := fmt.Sprintf("%s.jfrog.io", serverDetails.ServerId)
-		serverUrl := fmt.Sprintf("https://%s/v2", serverHostname)
-		resp[serverHostname] = serverDetails.User
-		resp[serverUrl] = serverDetails.User
+		u, err := url.Parse(serverDetails.Url)
+		if err != nil {
+			log.Println("Skipping", serverDetails.Url, ": unable to parse as URL")
+			continue
+		}
+
+		resp[u.Hostname()] = serverDetails.User
 	}
 
 	return resp, nil
