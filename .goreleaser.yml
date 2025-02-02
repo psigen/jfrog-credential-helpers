@@ -1,5 +1,21 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # See: https://goreleaser.com/customization/
 version: 2
+
+builds:
+  - id: docker-credential-jfrog
+    main: ./cmd/docker
+    binary: docker-credential-jfrog
+
+  - id: bazel-credential-jfrog
+    main: ./cmd/bazel
+    binary: bazel-credential-jfrog
+
 archives:
-  - format: binary
+  - id: docker-credential-jfrog
+    builds: ["docker-credential-jfrog"]
+    formats: ["binary"]
+
+  - id: bazel-credential-jfrog
+    builds: ["bazel-credential-jfrog"]
+    formats: ["binary"]

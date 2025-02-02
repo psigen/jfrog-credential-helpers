@@ -4,7 +4,8 @@ import (
 	"errors"
 	"log"
 	"net/url"
-	"strings"
+
+	"github.com/psigen/jfrog-credential-helpers/internal/jfrog"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/jfrog/jfrog-cli-core/v2/common/commands"
@@ -14,43 +15,12 @@ import (
 // ArtifactoryKeychain handles secrets using the Artifactory API for access tokens.
 type ArtifactoryKeychain struct{}
 
-var ErrInvalidDomain = errors.New("invalid domain: must contain *.jfrog.io")
-
-// Returns the hostname of either a URL or a hostname string.
-func getHostnameFromURLorHost(serverUrl string) (string, error) {
-	if strings.HasPrefix(serverUrl, "https://") || strings.HasPrefix(serverUrl, "http://") {
-		u, err := url.Parse(serverUrl)
-		if err != nil {
-			return "", err
-		}
-		return u.Hostname(), nil
-	} else {
-		return serverUrl, nil
-	}
-
-}
-
-// Gets the default server ID used by JFrog for an artifactory URL.
-func getServerIdFromUrl(serverURL string) (string, error) {
-	serverHostname, err := getHostnameFromURLorHost(serverURL)
-	if err != nil {
-		return "", err
-	}
-
-	serverId, domain, found := strings.Cut(serverHostname, ".")
-	if !found || domain != "jfrog.io" {
-		return "", ErrInvalidDomain
-	}
-
-	return serverId, nil
-}
-
 // Logs into artifactory using an interactive webauth flow.
 func (h ArtifactoryKeychain) Login(serverURL string) error {
 	// TODO(PV): Logout before logging in?
 
 	serverDetails := config.ServerDetails{Url: serverURL}
-	serverId, err := getServerIdFromUrl(serverURL)
+	serverId, err := jfrog.GetServerIdFromUrl(serverURL)
 	if err != nil {
 		return err
 	}
@@ -67,8 +37,8 @@ func (h ArtifactoryKeychain) Login(serverURL string) error {
 
 // Logs out of artifactory by clearing the creds used by `jf` CLI tool.
 func (h ArtifactoryKeychain) Logout(serverURL string) error {
-	serverId, err := getServerIdFromUrl(serverURL)
-	if errors.Is(err, ErrInvalidDomain) {
+	serverId, err := jfrog.GetServerIdFromUrl(serverURL)
+	if errors.Is(err, jfrog.ErrInvalidDomain) {
 		log.Println("Skipping logout from invalid domain:", serverURL)
 		return nil
 	} else if err != nil {
@@ -97,9 +67,10 @@ func (h ArtifactoryKeychain) Delete(serverURL string) error {
 
 // Get returns the username and secret to use for a given registry server URL.
 func (h ArtifactoryKeychain) Get(serverURL string) (string, string, error) {
-	serverHostname, err := getHostnameFromURLorHost(serverURL)
+	serverHostname, err := jfrog.GetHostnameFromURLorHost(serverURL)
 	if err != nil {
 		log.Fatalln("unable to find hostname in", serverURL)
+		return "", "", err
 	}
 
 	serverDetailList, err := config.GetAllServersConfigs()

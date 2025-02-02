@@ -1,4 +1,4 @@
-module github.com/psigen/docker-credential-artifactory
+module github.com/psigen/jfrog-credential-helpers
 
 go 1.23.2
 

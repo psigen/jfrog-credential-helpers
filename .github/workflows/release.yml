@@ -1,10 +1,10 @@
 # .github/workflows/release.yml
 name: goreleaser
 
+# Run only against tags.
+# We can always push tags against test branches.
 on:
-  pull_request:
   push:
-    # run only against tags
     tags:
       - "*"
 
