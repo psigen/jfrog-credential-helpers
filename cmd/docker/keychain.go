@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/psigen/jfrog-credential-helpers/internal/helpers"
+	"github.com/psigen/jfrog-credential-helpers/internal/jfrog"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/jfrog/jfrog-cli-core/v2/common/commands"
@@ -20,7 +20,7 @@ func (h ArtifactoryKeychain) Login(serverURL string) error {
 	// TODO(PV): Logout before logging in?
 
 	serverDetails := config.ServerDetails{Url: serverURL}
-	serverId, err := helpers.GetServerIdFromUrl(serverURL)
+	serverId, err := jfrog.GetServerIdFromUrl(serverURL)
 	if err != nil {
 		return err
 	}
@@ -37,8 +37,8 @@ func (h ArtifactoryKeychain) Login(serverURL string) error {
 
 // Logs out of artifactory by clearing the creds used by `jf` CLI tool.
 func (h ArtifactoryKeychain) Logout(serverURL string) error {
-	serverId, err := helpers.GetServerIdFromUrl(serverURL)
-	if errors.Is(err, helpers.ErrInvalidDomain) {
+	serverId, err := jfrog.GetServerIdFromUrl(serverURL)
+	if errors.Is(err, jfrog.ErrInvalidDomain) {
 		log.Println("Skipping logout from invalid domain:", serverURL)
 		return nil
 	} else if err != nil {
@@ -67,7 +67,7 @@ func (h ArtifactoryKeychain) Delete(serverURL string) error {
 
 // Get returns the username and secret to use for a given registry server URL.
 func (h ArtifactoryKeychain) Get(serverURL string) (string, string, error) {
-	serverHostname, err := helpers.GetHostnameFromURLorHost(serverURL)
+	serverHostname, err := jfrog.GetHostnameFromURLorHost(serverURL)
 	if err != nil {
 		log.Fatalln("unable to find hostname in", serverURL)
 		return "", "", err

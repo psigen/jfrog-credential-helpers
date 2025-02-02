@@ -8,16 +8,17 @@ import (
 	"net/url"
 
 	"github.com/jfrog/jfrog-cli-core/v2/utils/config"
-	"github.com/psigen/jfrog-credential-helpers/internal/helpers"
+	"github.com/psigen/jfrog-credential-helpers/internal/bazel"
+	"github.com/psigen/jfrog-credential-helpers/internal/jfrog"
 )
 
 type ArtifactoryCredentialProvider struct{}
 
 // Get the credentials for a specific JFrog URI.
-func (h ArtifactoryCredentialProvider) Get(request GetCredentialsRequest) (*GetCredentialsReponse, error) {
+func (h ArtifactoryCredentialProvider) Get(request bazel.GetCredentialsRequest) (*bazel.GetCredentialsReponse, error) {
 	serverURL := request.Uri
 
-	serverHostname, err := helpers.GetHostnameFromURLorHost(serverURL)
+	serverHostname, err := jfrog.GetHostnameFromURLorHost(serverURL)
 	if err != nil {
 		log.Fatalln("unable to find hostname in", serverURL)
 		return nil, err
@@ -37,7 +38,7 @@ func (h ArtifactoryCredentialProvider) Get(request GetCredentialsRequest) (*GetC
 		}
 
 		if u.Hostname() == serverHostname {
-			var response GetCredentialsReponse
+			var response bazel.GetCredentialsReponse
 
 			user := serverDetails.User
 			pass := serverDetails.AccessToken
@@ -47,7 +48,7 @@ func (h ArtifactoryCredentialProvider) Get(request GetCredentialsRequest) (*GetC
 			))
 
 			response.Headers = map[string][]string{
-				"Authorization": []string{"Basic " + authStr},
+				"Authorization": {"Basic " + authStr},
 			}
 
 			return &response, nil

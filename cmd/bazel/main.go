@@ -1,5 +1,7 @@
 package main
 
+import "github.com/psigen/jfrog-credential-helpers/internal/bazel"
+
 func main() {
-	Serve(ArtifactoryCredentialProvider{})
+	bazel.Serve(ArtifactoryCredentialProvider{})
 }

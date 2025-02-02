@@ -4,8 +4,8 @@ Credential shims using the JFrog API to access Artifactory.
 
 Currently supports **bazel** and **docker** via the following helpers:
 
-- bazel-credential-jfrog
-- docker-credential-jfrog
+- `bazel-credential-jfrog`
+- `docker-credential-jfrog`
 
 This internally calls the JFrog go client library to access the same stored
 credentials that are used by the JFrog CLI.
@@ -43,3 +43,6 @@ To manually build the executables in this package, use the following commands:
 go build -o docker-credential-jfrog ./cmd/docker
 go build -o bazel-credential-jfrog ./cmd/bazel
 ```
+
+## References
+
