@@ -70,6 +70,7 @@ func (h ArtifactoryKeychain) Get(serverURL string) (string, string, error) {
 	serverHostname, err := helpers.GetHostnameFromURLorHost(serverURL)
 	if err != nil {
 		log.Fatalln("unable to find hostname in", serverURL)
+		return "", "", err
 	}
 
 	serverDetailList, err := config.GetAllServersConfigs()
