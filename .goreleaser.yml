@@ -6,6 +6,10 @@ builds:
   - id: docker-credential-jfrog
     main: ./cmd/docker
     binary: docker-credential-jfrog
+    ldflags:
+    - -X github.com/docker/docker-credential-helpers/credentials.Name=docker-credential-jfrog
+    - -X github.com/docker/docker-credential-helpers/credentials.Package=github.com/psigen/jfrog-credential-helpers
+    - -X github.com/docker/docker-credential-helpers/credentials.Version={{.Version}}
 
   - id: bazel-credential-jfrog
     main: ./cmd/bazel
